@@ -22,12 +22,12 @@ function clamp2D(s) {
 }
 
 export const SYSTEMS = [
-  // ---------------- 3D FLOWS ----------------
 
   {
     id: "lorenz",
     name: "Lorenz",
     uiHint: "Recommended: moderate to low speed.",
+    defaultSpeed: 12,
     kind: "flow",
     dim: 3,
     params: { sigma: 10, rho: 28, beta: 8 / 3 },
@@ -46,6 +46,7 @@ export const SYSTEMS = [
     id: "chen",
     name: "Chen (Lorenz-like)",
     uiHint: "Recommended: low speed.",
+    defaultSpeed: 6,
     kind: "flow",
     dim: 3,
     params: { a: 35, b: 3, c: 28 },
@@ -63,6 +64,7 @@ export const SYSTEMS = [
   {
     id: "rossler",
     name: "Rössler",
+    defaultSpeed: 20,
     kind: "flow",
     dim: 3,
     params: { a: 0.2, b: 0.2, c: 5.7 },
@@ -80,6 +82,7 @@ export const SYSTEMS = [
   {
     id: "chua",
     name: "Chua",
+    defaultSpeed: 12,
     kind: "flow",
     dim: 3,
     params: { alpha: 15.6, beta: 28.0, m0: -1.143, m1: -0.714 },
@@ -100,6 +103,7 @@ export const SYSTEMS = [
   {
     id: "duffing",
     name: "Duffing (forced)",
+    defaultSpeed: 16,
     kind: "flow",
     dim: 3,
     params: { alpha: 1, beta: -1, delta: 0.2, gamma: 0.3, omega: 1.2 },
@@ -117,6 +121,7 @@ export const SYSTEMS = [
   {
     id: "thomas",
     name: "Thomas (Euler)",
+    defaultSpeed: 25,
     kind: "flow",
     dim: 3,
     params: { b: 0.208186 },
@@ -140,6 +145,7 @@ export const SYSTEMS = [
   {
     id: "rf",
     name: "Rabinovich–Fabrikant",
+    defaultSpeed: 12,
     kind: "flow",
     dim: 3,
     params: { a: 1.1, g: 0.87 },
@@ -159,6 +165,7 @@ export const SYSTEMS = [
     id: "qichen",
     name: "Qi–Chen",
     uiHint: "Recommended speed: about 10–15.",
+    defaultSpeed: 12,
     kind: "flow",
     dim: 3,
     params: { a: 35, b: 3, c: 28 },
@@ -176,6 +183,7 @@ export const SYSTEMS = [
   {
     id: "arneodo",
     name: "Arneodo",
+    defaultSpeed: 10,
     kind: "flow",
     dim: 3,
     params: { a: -5.5, b: 3.5, c: -1.0 },
@@ -194,6 +202,7 @@ export const SYSTEMS = [
   {
     id: "rucklidge",
     name: "Rucklidge",
+    defaultSpeed: 18,
     kind: "flow",
     dim: 3,
     params: { a: 2.0, b: 6.7 },
@@ -211,6 +220,7 @@ export const SYSTEMS = [
   {
     id: "nosehoover",
     name: "Nose–Hoover",
+    defaultSpeed: 14,
     kind: "flow",
     dim: 3,
     params: { a: 1.5 },
@@ -228,6 +238,7 @@ export const SYSTEMS = [
   {
     id: "rikitake",
     name: "Rikitake Dynamo",
+    defaultSpeed: 12,
     kind: "flow",
     dim: 3,
     params: { a: 1.0, mu: 0.5 },
@@ -246,6 +257,7 @@ export const SYSTEMS = [
     id: "dadras",
     name: "Dadras",
     uiHint: "Recommended: moderate to low speed.",
+    defaultSpeed: 10,
     kind: "flow",
     dim: 3,
     params: { c: 1.7, e: 9.0, o: 2.0, p: 3.0, r: 2.0 },
@@ -267,6 +279,7 @@ export const SYSTEMS = [
   {
     id: "halvorsen",
     name: "Halvorsen",
+    defaultSpeed: 12,
     kind: "flow",
     dim: 3,
     params: { a: 1.89 },
@@ -281,7 +294,6 @@ export const SYSTEMS = [
     preferredDt: 0.003,
     scale: 2.6,
   },
-
 
 ];
 

@@ -31,14 +31,12 @@ export function makeUI({ systems }) {
   let paused = false;
   let armedSpawnCount = null;
 
-  ui.system.innerHTML = systems.map(s => `<option value="${s.id}">${s.name}</option>`).join("");
+  ui.system.innerHTML = systems.map((s) => `<option value="${s.id}">${s.name}</option>`).join("");
   let activeSystemId = systems[0]?.id ?? null;
 
-  // keep live refs to generated sliders
   let paramInputs = {}; // { paramName: HTMLInputElement }
 
   function fmt(v) {
-    // compact numeric display
     const av = Math.abs(v);
     if (av === 0) return "0";
     if (av < 0.001 || av > 10000) return v.toExponential(2);
@@ -46,22 +44,20 @@ export function makeUI({ systems }) {
   }
 
   function paramRangeDefaults(name, value) {
-    // Heuristic min/max so every parameter has its own slider.
-    // You can customize per-system later.
-    const v = (typeof value === "number") ? value : 0;
+    const v = typeof value === "number" ? value : 0;
     const av = Math.abs(v);
 
     if (av === 0) return { min: -10, max: 10, step: 0.001 };
-    const span = Math.max(1e-6, av * 3); // +/- 3x around value
+
+    const span = Math.max(1e-6, av * 3);
     const min = v - span;
     const max = v + span;
 
-    // choose step based on magnitude
     const step =
       av >= 10 ? 0.01 :
       av >= 1  ? 0.001 :
-      av >= 0.1? 0.0005 :
-                0.0001;
+      av >= 0.1 ? 0.0005 :
+      0.0001;
 
     return { min, max, step };
   }
@@ -115,23 +111,6 @@ export function makeUI({ systems }) {
     }
   }
 
-  function setSystem(id) {
-    activeSystemId = id;
-    const sys = systems.find(s => s.id === id);
-
-    ui.systemDim.textContent = sys ? `${sys.dim}D` : "—";
-    ui.systemInfo.textContent = sys
-      ? `Type: ${sys.kind} • Params: ${Object.keys(sys.params ?? {}).join(", ") || "none"}`
-      : "—";
-
-    ui.eqHint.textContent = sys ? sys.eq : "—";
-
-    buildParamSliders(sys);
-  }
-
-  ui.system.addEventListener("change", () => setSystem(ui.system.value));
-  setSystem(activeSystemId);
-
   function read() {
     const speed = ui.speed.valueAsNumber;
     const trail = ui.trail.valueAsNumber;
@@ -146,9 +125,7 @@ export function makeUI({ systems }) {
 
   function readParams() {
     const out = {};
-    for (const [k, el] of Object.entries(paramInputs)) {
-      out[k] = el.valueAsNumber; // numeric slider value [web:595]
-    }
+    for (const [k, el] of Object.entries(paramInputs)) out[k] = el.valueAsNumber;
     return out;
   }
 
@@ -159,25 +136,51 @@ export function makeUI({ systems }) {
 
   function setArmedSpawn(n) {
     armedSpawnCount = n;
-    ui.spawnStateText.textContent = (n == null) ? "Spawn: none" : `Spawn: ${n}`;
+    ui.spawnStateText.textContent = n == null ? "Spawn: none" : `Spawn: ${n}`;
     for (const b of ui.spawnBtns) b.classList.toggle("primary", Number(b.dataset.n) === n);
     ui.spawnMore.classList.toggle("primary", false);
   }
 
   function clearSelection() {
     setArmedSpawn(null);
-    ui.spawnBtns.forEach(b => b.classList.remove("primary"));
+    ui.spawnBtns.forEach((b) => b.classList.remove("primary"));
     ui.spawnMore.classList.remove("primary");
   }
 
-  ui.spawnBtns.forEach(btn => btn.addEventListener("click", () => setArmedSpawn(Number(btn.dataset.n))));
+  function setSystem(id) {
+    activeSystemId = id;
+    const sys = systems.find((s) => s.id === id);
+
+    ui.systemDim.textContent = sys ? `${sys.dim}D` : "—";
+
+    const hint = sys?.uiHint ? ` • ${sys.uiHint}` : "";
+    ui.systemInfo.textContent = sys
+      ? `Type: ${sys.kind} • Params: ${Object.keys(sys.params ?? {}).join(", ") || "none"}${hint}`
+      : "—";
+
+    ui.eqHint.textContent = sys ? sys.eq : "—";
+
+    // Apply per-system default speed (if provided). [web:566]
+    if (sys && typeof sys.defaultSpeed === "number" && Number.isFinite(sys.defaultSpeed)) {
+      ui.speed.value = String(sys.defaultSpeed);
+      ui.speed.dispatchEvent(new Event("input", { bubbles: true })); // update any listeners [web:738]
+    }
+
+    buildParamSliders(sys);
+    read();
+  }
+
+  ui.system.addEventListener("change", () => setSystem(ui.system.value));
+  setSystem(activeSystemId);
+
+  ui.spawnBtns.forEach((btn) => btn.addEventListener("click", () => setArmedSpawn(Number(btn.dataset.n))));
   ui.spawnMore.addEventListener("click", () => {
-    const raw = prompt("How many to spawn on next click? (1-15)");
+    const raw = prompt("How many to spawn on next click? (1-50)");
     if (raw == null) return;
     const n = Math.max(1, Math.min(50, Math.floor(Number(raw))));
     if (!Number.isFinite(n)) return;
     setArmedSpawn(n);
-    ui.spawnBtns.forEach(b => b.classList.remove("primary"));
+    ui.spawnBtns.forEach((b) => b.classList.remove("primary"));
     ui.spawnMore.classList.add("primary");
   });
 
@@ -187,10 +190,16 @@ export function makeUI({ systems }) {
     ui,
     read,
     readParams,
-    get paused() { return paused; },
+    get paused() {
+      return paused;
+    },
     setPaused,
-    get armedSpawnCount() { return armedSpawnCount; },
+    get armedSpawnCount() {
+      return armedSpawnCount;
+    },
     clearSelection,
-    get activeSystemId() { return activeSystemId; },
+    get activeSystemId() {
+      return activeSystemId;
+    },
   };
 }
