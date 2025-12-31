@@ -1,15 +1,15 @@
 import * as THREE from "three";
-import { rk4 } from "./chen.js";
 import { makeScene } from "./scene.js";
 import { makeUI } from "./ui.js";
 import { applyTrailWindow, disposeTrail, pushPoint } from "./trails.js";
 import { clickToAirPoint, spawnOneAt, MAX_PARTICLES } from "./spawn.js";
+import { SYSTEMS, SYSTEMS_BY_ID } from "./systems.js";
 
 const { scene, camera, renderer, controls } = makeScene();
 const raycaster = new THREE.Raycaster();
 
 const particles = [];
-const uiCtl = makeUI();
+const uiCtl = makeUI({ systems: SYSTEMS });
 
 function updateCount() {
   uiCtl.ui.countText.textContent = `Particles: ${particles.length} / ${MAX_PARTICLES}`;
@@ -18,12 +18,10 @@ function updateCount() {
 function updateHudCamera() {
   const camPos = new THREE.Vector3();
   camera.getWorldPosition(camPos);
-  uiCtl.ui.camText.textContent =
-    `x: ${camPos.x.toFixed(2)} y: ${camPos.y.toFixed(2)} z: ${camPos.z.toFixed(2)}`;
+  uiCtl.ui.camText.textContent = `x: ${camPos.x.toFixed(2)} y: ${camPos.y.toFixed(2)} z: ${camPos.z.toFixed(2)}`;
 
   const t = controls.target;
-  uiCtl.ui.targetText.textContent =
-    `x: ${t.x.toFixed(2)} y: ${t.y.toFixed(2)} z: ${t.z.toFixed(2)}`;
+  uiCtl.ui.targetText.textContent = `x: ${t.x.toFixed(2)} y: ${t.y.toFixed(2)} z: ${t.z.toFixed(2)}`;
 }
 
 uiCtl.ui.zoomIn.addEventListener("click", () => {
@@ -47,12 +45,15 @@ renderer.domElement.addEventListener("pointerdown", (ev) => {
   const base = clickToAirPoint({ THREE, raycaster, camera }, ev);
   if (!base) return;
 
+  const sys = SYSTEMS_BY_ID[uiCtl.activeSystemId];
+  if (!sys) return;
+
   const remaining = MAX_PARTICLES - particles.length;
   const n = Math.min(uiCtl.armedSpawnCount, remaining);
 
   const { dotSize } = uiCtl.read();
   for (let i = 0; i < n; i++) {
-    const ok = spawnOneAt({ THREE, scene, particles }, base.clone(), dotSize);
+    const ok = spawnOneAt({ THREE, scene, particles }, base.clone(), dotSize, sys);
     if (!ok) break;
   }
 
@@ -70,19 +71,36 @@ function frame() {
   updateHudCamera();
 
   if (!uiCtl.paused) {
-    const dt = 0.006;
-    const steps = Math.max(1, Math.floor(speed / 7));
+    // One "speed" control: more substeps for flows, more iterations for maps.
+    const flowDt = 0.006;
+    const flowSteps = Math.max(1, Math.floor(speed / 7));
+    const mapIters = Math.max(1, Math.floor(speed / 6));
 
     for (const p of particles) {
-      for (let i = 0; i < steps; i++) p.s = rk4(p.s, dt);
+      const sys = SYSTEMS_BY_ID[p.sysId];
+      if (!sys) continue;
 
-      const pos = new THREE.Vector3(
-        p.s.x * p.SCALE + p.offset.x,
-        p.s.y * p.SCALE + p.offset.y,
-        p.s.z * p.SCALE + p.offset.z
-      );
+      if (sys.kind === "flow") {
+        for (let i = 0; i < flowSteps; i++) p.s = sys.step(p.s, flowDt, p.params);
 
-      pushPoint(p, pos);
+        const pos = new THREE.Vector3(
+          p.s.x * p.SCALE + p.offset.x,
+          p.s.y * p.SCALE + p.offset.y,
+          p.s.z * p.SCALE + p.offset.z
+        );
+        pushPoint(p, pos);
+      } else {
+        for (let i = 0; i < mapIters; i++) p.s = sys.stepMap(p.s, p.params);
+
+        // maps are 2D → draw in XY plane (z=0), still in 3D scene
+        const pos = new THREE.Vector3(
+          p.s.x * p.SCALE + p.offset.x,
+          p.s.y * p.SCALE + p.offset.y,
+          0 + p.offset.z
+        );
+        pushPoint(p, pos);
+      }
+
       p.head.material.size = dotSize * 0.06;
       applyTrailWindow(p, trail);
     }
@@ -90,5 +108,4 @@ function frame() {
 
   renderer.render(scene, camera);
 }
-
 frame();

@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>3D Chaos — Chen Attractor</title>
+  <title>3D Chaos — Attractors</title>
 
   <script type="importmap">
   {
@@ -17,7 +17,6 @@
   <style>
     html, body { margin:0; height:100%; overflow:hidden; background:#05070a; }
     canvas { display:block; }
-
     #hud{
       position:fixed; left:14px; top:14px; width:460px;
       font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
@@ -37,6 +36,8 @@
     .row label{ width:92px; color:#9ca3af; font-size:13px; }
     input[type="range"]{ flex:1; }
     .val{ width:70px; text-align:right; font-variant-numeric: tabular-nums; font-size:13px; }
+    select{ flex:1; padding:8px 10px; border-radius:10px; border:1px solid rgba(148,163,184,.25);
+      background: rgba(2,6,23,.45); color:#e5e7eb; }
 
     .btns{ display:flex; gap:10px; margin-top:12px; flex-wrap: wrap; }
     button{
@@ -71,8 +72,15 @@
 </head>
 <body>
   <div id="hud">
-    <div class="title">3D chaotic trajectories</div>
-    <div class="sub">Pick how many to spawn, then click once in the scene. Selection clears after spawn.</div>
+    <div class="title">Chaotic trajectories</div>
+    <div class="sub">Choose a system, arm spawn count, then click once in the scene.</div>
+
+    <div class="row">
+      <label>System</label>
+      <select id="system"></select>
+      <div class="val" id="systemDim">3D</div>
+    </div>
+    <div class="sub" id="systemInfo" style="margin-top:8px">—</div>
 
     <div class="row">
       <label>Speed</label>
@@ -123,7 +131,7 @@
     </div>
   </div>
 
-  <div class="hint">Chen: ẋ=αx−yz, ẏ=βy+xz, ż=δz+(1/3)xy (α=5, β=-10, δ=-0.38)</div>
+  <div class="hint" id="eqHint">—</div>
 
   <script type="module" src="./src/main.js"></script>
 </body>

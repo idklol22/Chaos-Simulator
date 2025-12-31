@@ -1,5 +1,10 @@
-export function makeUI() {
+export function makeUI({ systems }) {
   const ui = {
+    system: document.getElementById("system"),
+    systemDim: document.getElementById("systemDim"),
+    systemInfo: document.getElementById("systemInfo"),
+    eqHint: document.getElementById("eqHint"),
+
     speed: document.getElementById("speed"),
     trail: document.getElementById("trail"),
     dotSize: document.getElementById("dotSize"),
@@ -23,6 +28,24 @@ export function makeUI() {
 
   let paused = false;
   let armedSpawnCount = null;
+
+  // Populate dropdown
+  ui.system.innerHTML = systems
+    .map(s => `<option value="${s.id}">${s.name}</option>`)
+    .join("");
+
+  let activeSystemId = systems[0]?.id ?? null;
+
+  function setSystem(id) {
+    activeSystemId = id;
+    const sys = systems.find(s => s.id === id);
+    ui.systemDim.textContent = sys ? `${sys.dim}D` : "—";
+    ui.systemInfo.textContent = sys ? `Type: ${sys.kind} • Params: ${Object.keys(sys.params ?? {}).join(", ") || "none"}` : "—";
+    ui.eqHint.textContent = sys ? sys.eq : "—";
+  }
+
+  ui.system.addEventListener("change", () => setSystem(ui.system.value));
+  setSystem(activeSystemId);
 
   function read() {
     const speed = Number(ui.speed.value);
@@ -52,9 +75,7 @@ export function makeUI() {
     ui.spawnMore.classList.remove("primary");
   }
 
-  ui.spawnBtns.forEach(btn => {
-    btn.addEventListener("click", () => setArmedSpawn(Number(btn.dataset.n)));
-  });
+  ui.spawnBtns.forEach(btn => btn.addEventListener("click", () => setArmedSpawn(Number(btn.dataset.n))));
 
   ui.spawnMore.addEventListener("click", () => {
     const raw = prompt("How many to spawn on next click? (1-15)");
@@ -74,7 +95,8 @@ export function makeUI() {
     get paused() { return paused; },
     setPaused,
     get armedSpawnCount() { return armedSpawnCount; },
-    setArmedSpawn,
     clearSelection,
+    get activeSystemId() { return activeSystemId; },
+    setSystem,
   };
 }
