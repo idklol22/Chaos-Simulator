@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>3D Chaos — Chen Attractor</title>
+
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+    }
+  }
+  </script>
+
+  <style>
+    html, body { margin:0; height:100%; overflow:hidden; background:#05070a; }
+    canvas { display:block; }
+
+    #hud{
+      position:fixed; left:14px; top:14px; width:460px;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+      color:#e5e7eb;
+      background: rgba(15, 23, 42, 0.62);
+      border: 1px solid rgba(148, 163, 184, 0.22);
+      border-radius: 14px;
+      padding: 12px 12px;
+      backdrop-filter: blur(10px);
+      box-shadow: 0 10px 30px rgba(0,0,0,.35);
+      user-select:none;
+    }
+    .title{ font-weight:650; letter-spacing:.2px; }
+    .sub{ margin-top:4px; color:#9ca3af; font-size:13px; line-height:1.35; }
+
+    .row{ display:flex; align-items:center; gap:10px; margin-top:10px; }
+    .row label{ width:92px; color:#9ca3af; font-size:13px; }
+    input[type="range"]{ flex:1; }
+    .val{ width:70px; text-align:right; font-variant-numeric: tabular-nums; font-size:13px; }
+
+    .btns{ display:flex; gap:10px; margin-top:12px; flex-wrap: wrap; }
+    button{
+      padding:9px 10px; border-radius:10px;
+      border:1px solid rgba(148,163,184,.25);
+      background: rgba(2,6,23,.45);
+      color:#e5e7eb; cursor:pointer;
+      flex: 1 1 auto;
+      min-width: 92px;
+    }
+    button:hover{ border-color: rgba(96,165,250,.45); }
+    button.primary{
+      border-color: rgba(96,165,250,.55);
+      background: rgba(37,99,235,.22);
+    }
+
+    .pill{
+      margin-top:10px;
+      padding:6px 10px;
+      border-radius:999px;
+      border:1px solid rgba(148,163,184,.18);
+      background: rgba(2,6,23,.35);
+      color:#cbd5e1;
+      font-size:12px;
+      display:flex;
+      justify-content: space-between;
+      gap:10px;
+    }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+    .hint{ position:fixed; right:14px; bottom:14px; color: rgba(229,231,235,.6); font-family: ui-sans-serif, system-ui; font-size: 12px; }
+  </style>
+</head>
+<body>
+  <div id="hud">
+    <div class="title">3D chaotic trajectories</div>
+    <div class="sub">Pick how many to spawn, then click once in the scene. Selection clears after spawn.</div>
+
+    <div class="row">
+      <label>Speed</label>
+      <input id="speed" type="range" min="1" max="100" value="49" />
+      <div class="val" id="speedVal">49</div>
+    </div>
+
+    <div class="row">
+      <label>Trail</label>
+      <input id="trail" type="range" min="0" max="100" value="0" />
+      <div class="val" id="trailVal">0</div>
+    </div>
+
+    <div class="row">
+      <label>Dot size</label>
+      <input id="dotSize" type="range" min="1" max="18" value="6" />
+      <div class="val" id="dotSizeVal">6</div>
+    </div>
+
+    <div class="btns">
+      <button id="pause">Pause</button>
+      <button id="clear">Clear</button>
+      <button id="zoomIn">Zoom in</button>
+    </div>
+
+    <div class="sub" style="margin-top:10px">Spawn count (arms on click):</div>
+    <div class="btns">
+      <button class="spawnBtn" data-n="1">+1</button>
+      <button class="spawnBtn" data-n="2">+2</button>
+      <button class="spawnBtn" data-n="3">+3</button>
+      <button class="spawnBtn" data-n="5">+5</button>
+      <button id="spawnMore">More…</button>
+    </div>
+
+    <div class="pill">
+      <span id="countText">Particles: 0 / 15</span>
+      <span id="spawnStateText">Spawn: none</span>
+    </div>
+
+    <div class="pill mono">
+      <span>Cam</span>
+      <span id="camText">x: 0.00 y: 0.00 z: 0.00</span>
+    </div>
+
+    <div class="pill mono">
+      <span>Target</span>
+      <span id="targetText">x: 0.00 y: 0.00 z: 0.00</span>
+    </div>
+  </div>
+
+  <div class="hint">Chen: ẋ=αx−yz, ẏ=βy+xz, ż=δz+(1/3)xy (α=5, β=-10, δ=-0.38)</div>
+
+  <script type="module" src="./src/main.js"></script>
+</body>
+</html>
