@@ -1,6 +1,6 @@
 import { neonColor, makeNeonTrail, pushPoint } from "./trails.js";
 
-export const MAX_PARTICLES = 15;
+export const MAX_PARTICLES = 350;
 export const AIR_DEPTH = 54 * 1.7;
 
 const SPAWN_JITTER_RADIUS = 2.2;

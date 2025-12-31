@@ -6,14 +6,14 @@ export function makeUI({ systems }) {
     eqHint: document.getElementById("eqHint"),
 
     speed: document.getElementById("speed"),
-    hyper: document.getElementById("hyper"),
     trail: document.getElementById("trail"),
     dotSize: document.getElementById("dotSize"),
 
     speedVal: document.getElementById("speedVal"),
-    hyperVal: document.getElementById("hyperVal"),
     trailVal: document.getElementById("trailVal"),
     dotSizeVal: document.getElementById("dotSizeVal"),
+
+    paramSliders: document.getElementById("paramSliders"),
 
     pause: document.getElementById("pause"),
     clear: document.getElementById("clear"),
@@ -28,22 +28,92 @@ export function makeUI({ systems }) {
     spawnMore: document.getElementById("spawnMore"),
   };
 
-  // (optional) glow style for eq hint
-  if (!document.getElementById("eqHintStyle")) {
-    const style = document.createElement("style");
-    style.id = "eqHintStyle";
-    style.textContent = `
-      #eqHint.eq3d{ text-shadow: 0 0 8px rgba(96,165,250,.9), 0 0 18px rgba(96,165,250,.55); }
-      #eqHint.eq2d{ text-shadow: 0 0 6px rgba(167,139,250,.8), 0 0 14px rgba(167,139,250,.45); }
-    `;
-    document.head.appendChild(style);
-  }
-
   let paused = false;
   let armedSpawnCount = null;
 
   ui.system.innerHTML = systems.map(s => `<option value="${s.id}">${s.name}</option>`).join("");
   let activeSystemId = systems[0]?.id ?? null;
+
+  // keep live refs to generated sliders
+  let paramInputs = {}; // { paramName: HTMLInputElement }
+
+  function fmt(v) {
+    // compact numeric display
+    const av = Math.abs(v);
+    if (av === 0) return "0";
+    if (av < 0.001 || av > 10000) return v.toExponential(2);
+    return String(Number(v.toFixed(6)));
+  }
+
+  function paramRangeDefaults(name, value) {
+    // Heuristic min/max so every parameter has its own slider.
+    // You can customize per-system later.
+    const v = (typeof value === "number") ? value : 0;
+    const av = Math.abs(v);
+
+    if (av === 0) return { min: -10, max: 10, step: 0.001 };
+    const span = Math.max(1e-6, av * 3); // +/- 3x around value
+    const min = v - span;
+    const max = v + span;
+
+    // choose step based on magnitude
+    const step =
+      av >= 10 ? 0.01 :
+      av >= 1  ? 0.001 :
+      av >= 0.1? 0.0005 :
+                0.0001;
+
+    return { min, max, step };
+  }
+
+  function buildParamSliders(sys) {
+    ui.paramSliders.innerHTML = "";
+    paramInputs = {};
+
+    const params = sys?.params ?? {};
+    const keys = Object.keys(params);
+
+    if (keys.length === 0) {
+      ui.paramSliders.innerHTML = `<div class="sub">No parameters for this system.</div>`;
+      return;
+    }
+
+    for (const k of keys) {
+      const v = params[k];
+      if (typeof v !== "number") continue;
+
+      const row = document.createElement("div");
+      row.className = "paramRow";
+
+      const nameEl = document.createElement("div");
+      nameEl.className = "pname";
+      nameEl.textContent = k;
+
+      const slider = document.createElement("input");
+      slider.type = "range";
+
+      const { min, max, step } = paramRangeDefaults(k, v);
+      slider.min = String(min);
+      slider.max = String(max);
+      slider.step = String(step);
+      slider.value = String(v);
+
+      const valEl = document.createElement("div");
+      valEl.className = "pval";
+      valEl.textContent = fmt(v);
+
+      slider.addEventListener("input", () => {
+        valEl.textContent = fmt(slider.valueAsNumber);
+      });
+
+      row.appendChild(nameEl);
+      row.appendChild(slider);
+      row.appendChild(valEl);
+
+      ui.paramSliders.appendChild(row);
+      paramInputs[k] = slider;
+    }
+  }
 
   function setSystem(id) {
     activeSystemId = id;
@@ -55,25 +125,31 @@ export function makeUI({ systems }) {
       : "—";
 
     ui.eqHint.textContent = sys ? sys.eq : "—";
-    ui.eqHint.classList.toggle("eq3d", !!sys && sys.dim === 3);
-    ui.eqHint.classList.toggle("eq2d", !!sys && sys.dim === 2);
+
+    buildParamSliders(sys);
   }
 
   ui.system.addEventListener("change", () => setSystem(ui.system.value));
   setSystem(activeSystemId);
 
   function read() {
-    const speed = ui.speed.valueAsNumber; // use numeric value [web:566]
-    const hyper = ui.hyper.valueAsNumber; // 0..200
+    const speed = ui.speed.valueAsNumber;
     const trail = ui.trail.valueAsNumber;
     const dotSize = ui.dotSize.valueAsNumber;
 
     ui.speedVal.textContent = String(speed);
-    ui.hyperVal.textContent = `${hyper}%`;
     ui.trailVal.textContent = String(trail);
     ui.dotSizeVal.textContent = String(dotSize);
 
-    return { speed, hyper, trail, dotSize };
+    return { speed, trail, dotSize };
+  }
+
+  function readParams() {
+    const out = {};
+    for (const [k, el] of Object.entries(paramInputs)) {
+      out[k] = el.valueAsNumber; // numeric slider value [web:595]
+    }
+    return out;
   }
 
   function setPaused(p) {
@@ -95,11 +171,10 @@ export function makeUI({ systems }) {
   }
 
   ui.spawnBtns.forEach(btn => btn.addEventListener("click", () => setArmedSpawn(Number(btn.dataset.n))));
-
   ui.spawnMore.addEventListener("click", () => {
     const raw = prompt("How many to spawn on next click? (1-15)");
     if (raw == null) return;
-    const n = Math.max(1, Math.min(15, Math.floor(Number(raw))));
+    const n = Math.max(1, Math.min(50, Math.floor(Number(raw))));
     if (!Number.isFinite(n)) return;
     setArmedSpawn(n);
     ui.spawnBtns.forEach(b => b.classList.remove("primary"));
@@ -111,11 +186,11 @@ export function makeUI({ systems }) {
   return {
     ui,
     read,
+    readParams,
     get paused() { return paused; },
     setPaused,
     get armedSpawnCount() { return armedSpawnCount; },
     clearSelection,
     get activeSystemId() { return activeSystemId; },
-    setSystem,
   };
 }

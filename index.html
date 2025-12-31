@@ -75,6 +75,12 @@
     }
     .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
     .hint{ position:fixed; right:14px; bottom:14px; color: rgba(229,231,235,.75); font-family: ui-sans-serif, system-ui; font-size: 12px; }
+
+    /* Dynamic parameter slider rows */
+    .paramRow{ display:flex; align-items:center; gap:10px; margin-top:10px; }
+    .paramRow .pname{ width:110px; color:#9ca3af; font-size:13px; }
+    .paramRow input[type="range"]{ flex:1; }
+    .paramRow .pval{ width:90px; text-align:right; font-variant-numeric: tabular-nums; font-size:13px; }
   </style>
 </head>
 <body>
@@ -89,18 +95,13 @@
     </div>
     <div class="sub" id="systemInfo" style="margin-top:8px">—</div>
 
-    <div class="row">
-      <label>Speed</label>
-      <!-- DOUBLED max from 100 → 200 [web:566] -->
-      <input id="speed" type="range" min="1" max="200" value="49" />
-      <div class="val" id="speedVal">49</div>
-    </div>
+    <div class="sub" style="margin-top:10px">Parameters (live):</div>
+    <div id="paramSliders"></div>
 
     <div class="row">
-      <label>Hyperparam</label>
-      <!-- 0–200% multiplier -->
-      <input id="hyper" type="range" min="0" max="200" value="100" />
-      <div class="val" id="hyperVal">100%</div>
+      <label>Speed</label>
+      <input id="speed" type="range" min="1" max="200" value="49" />
+      <div class="val" id="speedVal">49</div>
     </div>
 
     <div class="row">
@@ -119,6 +120,8 @@
       <button id="pause">Pause</button>
       <button id="clear">Clear</button>
       <button id="zoomIn">Zoom in</button>
+      <button id="fit">Fit</button>
+
     </div>
 
     <div class="sub" style="margin-top:10px">Spawn count (arms on click):</div>
@@ -127,6 +130,7 @@
       <button class="spawnBtn" data-n="2">+2</button>
       <button class="spawnBtn" data-n="3">+3</button>
       <button class="spawnBtn" data-n="5">+5</button>
+      
       <button id="spawnMore">More…</button>
     </div>
 
