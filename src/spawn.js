@@ -3,7 +3,6 @@ import { neonColor, makeNeonTrail, pushPoint } from "./trails.js";
 export const MAX_PARTICLES = 15;
 export const AIR_DEPTH = 54 * 1.7;
 
-// how far apart the initial heads are (world units)
 const SPAWN_JITTER_RADIUS = 2.2;
 
 export function clickToAirPoint({ THREE, raycaster, camera }, ev) {
@@ -25,7 +24,6 @@ export function clickToAirPoint({ THREE, raycaster, camera }, ev) {
   return ok ? hit : null;
 }
 
-// random point in a small disk (so all heads don't overlap)
 function jitterPoint(THREE, base) {
   const a = Math.random() * Math.PI * 2;
   const r = SPAWN_JITTER_RADIUS * Math.sqrt(Math.random());
@@ -36,7 +34,6 @@ export function spawnOneAt(ctx, worldPoint, dotSize, system) {
   const { THREE, scene, particles } = ctx;
   if (particles.length >= MAX_PARTICLES) return false;
 
-  // IMPORTANT: each particle gets its own slightly different spawn point
   const spawnPoint = jitterPoint(THREE, worldPoint);
 
   const color = neonColor(THREE);
@@ -52,7 +49,6 @@ export function spawnOneAt(ctx, worldPoint, dotSize, system) {
     (s0.z ?? 0) * SCALE
   );
 
-  // Offset so the *first* simulated point lands exactly at spawnPoint
   const offset = new THREE.Vector3().subVectors(spawnPoint, first);
 
   const particle = {
