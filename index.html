@@ -16,7 +16,8 @@
 
   <style>
     html, body { margin:0; height:100%; overflow:hidden; background:#05070a; }
-    canvas { display:block; }
+    canvas { display:block; touch-action: none; } /* important for pointer events on touch devices [web:499] */
+
     #hud{
       position:fixed; left:14px; top:14px; width:460px;
       font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
@@ -36,8 +37,14 @@
     .row label{ width:92px; color:#9ca3af; font-size:13px; }
     input[type="range"]{ flex:1; }
     .val{ width:70px; text-align:right; font-variant-numeric: tabular-nums; font-size:13px; }
-    select{ flex:1; padding:8px 10px; border-radius:10px; border:1px solid rgba(148,163,184,.25);
-      background: rgba(2,6,23,.45); color:#e5e7eb; }
+    select{
+      flex:1;
+      padding:8px 10px;
+      border-radius:10px;
+      border:1px solid rgba(148,163,184,.25);
+      background: rgba(2,6,23,.45);
+      color:#e5e7eb;
+    }
 
     .btns{ display:flex; gap:10px; margin-top:12px; flex-wrap: wrap; }
     button{

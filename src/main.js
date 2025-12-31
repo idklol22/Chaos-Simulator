@@ -18,10 +18,12 @@ function updateCount() {
 function updateHudCamera() {
   const camPos = new THREE.Vector3();
   camera.getWorldPosition(camPos);
-  uiCtl.ui.camText.textContent = `x: ${camPos.x.toFixed(2)} y: ${camPos.y.toFixed(2)} z: ${camPos.z.toFixed(2)}`;
+  uiCtl.ui.camText.textContent =
+    `x: ${camPos.x.toFixed(2)} y: ${camPos.y.toFixed(2)} z: ${camPos.z.toFixed(2)}`;
 
   const t = controls.target;
-  uiCtl.ui.targetText.textContent = `x: ${t.x.toFixed(2)} y: ${t.y.toFixed(2)} z: ${t.z.toFixed(2)}`;
+  uiCtl.ui.targetText.textContent =
+    `x: ${t.x.toFixed(2)} y: ${t.y.toFixed(2)} z: ${t.z.toFixed(2)}`;
 }
 
 uiCtl.ui.zoomIn.addEventListener("click", () => {
@@ -38,9 +40,23 @@ uiCtl.ui.clear.addEventListener("click", () => {
   uiCtl.clearSelection();
 });
 
+/**
+ * FIX: listen in CAPTURE phase, so OrbitControls can't swallow the pointerdown.
+ * Also stop the event to avoid the click becoming a camera-drag start.
+ *
+ * addEventListener supports { capture: true } [web:495]
+ * preventDefault() cancels default actions [web:494]
+ * stopPropagation() stops further dispatch [web:491]
+ */
 renderer.domElement.addEventListener("pointerdown", (ev) => {
-  if (ev.target.closest && ev.target.closest("#hud")) return;
+  // ignore HUD clicks
+  if (ev.target instanceof Element && ev.target.closest("#hud")) return;
+
+  // only spawn when armed
   if (uiCtl.armedSpawnCount == null) return;
+
+  ev.preventDefault();
+  ev.stopPropagation();
 
   const base = clickToAirPoint({ THREE, raycaster, camera }, ev);
   if (!base) return;
@@ -59,7 +75,7 @@ renderer.domElement.addEventListener("pointerdown", (ev) => {
 
   uiCtl.clearSelection();
   updateCount();
-});
+}, { capture: true });
 
 updateCount();
 
@@ -71,7 +87,6 @@ function frame() {
   updateHudCamera();
 
   if (!uiCtl.paused) {
-    // One "speed" control: more substeps for flows, more iterations for maps.
     const flowDt = 0.006;
     const flowSteps = Math.max(1, Math.floor(speed / 7));
     const mapIters = Math.max(1, Math.floor(speed / 6));
@@ -92,7 +107,6 @@ function frame() {
       } else {
         for (let i = 0; i < mapIters; i++) p.s = sys.stepMap(p.s, p.params);
 
-        // maps are 2D → draw in XY plane (z=0), still in 3D scene
         const pos = new THREE.Vector3(
           p.s.x * p.SCALE + p.offset.x,
           p.s.y * p.SCALE + p.offset.y,
@@ -108,4 +122,5 @@ function frame() {
 
   renderer.render(scene, camera);
 }
+
 frame();
