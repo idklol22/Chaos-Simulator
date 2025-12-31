@@ -40,19 +40,8 @@ uiCtl.ui.clear.addEventListener("click", () => {
   uiCtl.clearSelection();
 });
 
-/**
- * FIX: listen in CAPTURE phase, so OrbitControls can't swallow the pointerdown.
- * Also stop the event to avoid the click becoming a camera-drag start.
- *
- * addEventListener supports { capture: true } [web:495]
- * preventDefault() cancels default actions [web:494]
- * stopPropagation() stops further dispatch [web:491]
- */
 renderer.domElement.addEventListener("pointerdown", (ev) => {
-  // ignore HUD clicks
   if (ev.target instanceof Element && ev.target.closest("#hud")) return;
-
-  // only spawn when armed
   if (uiCtl.armedSpawnCount == null) return;
 
   ev.preventDefault();
@@ -79,24 +68,42 @@ renderer.domElement.addEventListener("pointerdown", (ev) => {
 
 updateCount();
 
+function scaledParams(sysParams, mult) {
+  // Multiply only numeric params; leave others alone
+  const out = {};
+  for (const [k, v] of Object.entries(sysParams || {})) {
+    out[k] = (typeof v === "number") ? (v * mult) : v;
+  }
+  return out;
+}
+
 function frame() {
   requestAnimationFrame(frame);
 
-  const { speed, trail, dotSize } = uiCtl.read();
+  const { speed, hyper, trail, dotSize } = uiCtl.read();
   controls.update();
   updateHudCamera();
 
   if (!uiCtl.paused) {
-    const flowDt = 0.006;
-    const flowSteps = Math.max(1, Math.floor(speed / 7));
-    const mapIters = Math.max(1, Math.floor(speed / 6));
+    const hyperMult = Math.max(0, hyper / 100); // 0..2
+    const dtMult = hyperMult;
+    const paramMult = hyperMult;
+
+    const flowDtBase = 0.006;
+    const flowDt = flowDtBase * dtMult;
+
+    // with max speed=200 this can get much faster
+    const flowSteps = Math.max(1, Math.floor(speed / 5));
+    const mapIters  = Math.max(1, Math.floor(speed / 4));
 
     for (const p of particles) {
       const sys = SYSTEMS_BY_ID[p.sysId];
       if (!sys) continue;
 
+      const P = scaledParams(p.params, paramMult);
+
       if (sys.kind === "flow") {
-        for (let i = 0; i < flowSteps; i++) p.s = sys.step(p.s, flowDt, p.params);
+        for (let i = 0; i < flowSteps; i++) p.s = sys.step(p.s, flowDt, P);
 
         const pos = new THREE.Vector3(
           p.s.x * p.SCALE + p.offset.x,
@@ -105,7 +112,10 @@ function frame() {
         );
         pushPoint(p, pos);
       } else {
-        for (let i = 0; i < mapIters; i++) p.s = sys.stepMap(p.s, p.params);
+        // For maps, interpret "hyper" as additional iterations
+        for (let i = 0; i < Math.floor(mapIters * Math.max(0.25, hyperMult)); i++) {
+          p.s = sys.stepMap(p.s, P);
+        }
 
         const pos = new THREE.Vector3(
           p.s.x * p.SCALE + p.offset.x,

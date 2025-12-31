@@ -1,18 +1,8 @@
-// Unified interface:
-//
-// Flow (ODE): step(state, dt) -> newState
-// Map (discrete): step(state) -> newState
-//
-// Each system also provides:
-// - name, dim (2 or 3), kind ("flow" | "map")
-// - params, eq (short string)
-// - init(): initial state (object)
-
 function rk4Flow(deriv, s, dt, p) {
   const k1 = deriv(s, p);
   const k2 = deriv({ x: s.x + 0.5*dt*k1.dx, y: s.y + 0.5*dt*k1.dy, z: s.z + 0.5*dt*k1.dz }, p);
   const k3 = deriv({ x: s.x + 0.5*dt*k2.dx, y: s.y + 0.5*dt*k2.dy, z: s.z + 0.5*dt*k2.dz }, p);
-  const k4 = deriv({ x: s.x + dt*k3.dx, y: s.y + dt*k3.dy, z: s.z + dt*k3.dz }, p);
+  const k4 = deriv({ x: s.x + dt*k3.dx,     y: s.y + dt*k3.dy,     z: s.z + dt*k3.dz }, p);
   return {
     x: s.x + (dt/6)*(k1.dx + 2*k2.dx + 2*k3.dx + k4.dx),
     y: s.y + (dt/6)*(k1.dy + 2*k2.dy + 2*k3.dy + k4.dy),
@@ -62,23 +52,6 @@ export const SYSTEMS = [
   },
 
   {
-    id: "chenlee",
-    name: "Chen–Lee",
-    kind: "flow",
-    dim: 3,
-    params: { a: 5.0, b: -10.0, c: -0.38 },
-    eq: "ẋ=ax−yz, ẏ=by+xz, ż=cz+(1/3)xy",
-    init: () => ({ x: 0.01, y: 0.0, z: 0.0 }),
-    deriv: (s, p) => ({
-      dx: p.a * s.x - s.y * s.z,
-      dy: p.b * s.y + s.x * s.z,
-      dz: p.c * s.z + (1/3) * s.x * s.y
-    }),
-    step: (s, dt, p) => rk4Flow((ss, pp)=>SYSTEMS_BY_ID.chenlee.deriv(ss, pp), s, dt, p),
-    scale: 1.8,
-  },
-
-  {
     id: "rossler",
     name: "Rössler",
     kind: "flow",
@@ -122,7 +95,7 @@ export const SYSTEMS = [
     dim: 3,
     params: { alpha: 1, beta: -1, delta: 0.2, gamma: 0.3, omega: 1.2 },
     eq: "ẋ=y, ẏ=−δy−βx−αx³+γcos(θ), θ̇=ω",
-    init: () => ({ x: 0.1, y: 0.0, z: 0.0 }), // z is θ
+    init: () => ({ x: 0.1, y: 0.0, z: 0.0 }),
     deriv: (s, p) => ({
       dx: s.y,
       dy: -p.delta*s.y - p.beta*s.x - p.alpha*(s.x**3) + p.gamma*Math.cos(s.z),
@@ -132,57 +105,30 @@ export const SYSTEMS = [
     scale: 8.0,
   },
 
-  {
+  // FIXED Thomas: canonical form (sin(y)-b x, sin(z)-b y, sin(x)-b z) [web:552]
+    {
     id: "thomas",
-    name: "Thomas",
+    name: "Thomas (MATLAB-like Euler)",
     kind: "flow",
     dim: 3,
-    params: { a: 0.2, b: 4.0 },
-    eq: "ẋ=−ax+b sin(y), ẏ=−ay+b sin(z), ż=−az+b sin(x)",
-    init: () => ({ x: 0.1, y: 0.0, z: 0.0 }),
-    deriv: (s, p) => ({
-      dx: -p.a * s.x + p.b * Math.sin(s.y),
-      dy: -p.a * s.y + p.b * Math.sin(s.z),
-      dz: -p.a * s.z + p.b * Math.sin(s.x),
-    }),
-    step: (s, dt, p) => rk4Flow((ss, pp)=>SYSTEMS_BY_ID.thomas.deriv(ss, pp), s, dt, p),
-    scale: 12.0,
-  },
+    params: { b: 0.208186 },
+    eq: "ẋ=sin(y)−bx, ẏ=sin(z)−by, ż=sin(x)−bz (b≈0.208186)",
+    init: () => ({ x: (Math.random()*2-1), y: (Math.random()*2-1), z: (Math.random()*2-1) }),
+    // Euler step to match your MATLAB code
+    step: (s, dt, p) => {
+        const dx = Math.sin(s.y) - p.b*s.x;
+        const dy = Math.sin(s.z) - p.b*s.y;
+        const dz = Math.sin(s.x) - p.b*s.z;
+        return { x: s.x + dx*dt, y: s.y + dy*dt, z: s.z + dz*dt };
+    },
+    // store recommended dt + thinning so main.js can match MATLAB sampling
+    preferredDt: 0.005,
+    preferredThin: 100,
+    scale: 22.0,
+    }
+,
 
-  {
-    id: "aizawa",
-    name: "Aizawa",
-    kind: "flow",
-    dim: 3,
-    params: { a: 0.95, b: 0.7, c: 0.6, d: 3.5, e: 0.25, f: 0.1 },
-    eq: "Aizawa (standard form)",
-    init: () => ({ x: 0.1, y: 0.0, z: 0.0 }),
-    deriv: (s, p) => ({
-      dx: (s.z - p.b) * s.x - p.d * s.y,
-      dy: p.d * s.x + (s.z - p.b) * s.y,
-      dz: p.c + p.a*s.z - (s.z**3)/3 - (s.x**2 + s.y**2) * (1 + p.e*s.z) + p.f*s.z*(s.x**3),
-    }),
-    step: (s, dt, p) => rk4Flow((ss, pp)=>SYSTEMS_BY_ID.aizawa.deriv(ss, pp), s, dt, p),
-    scale: 4.2,
-  },
-
-  {
-    id: "halvorsen",
-    name: "Halvorsen",
-    kind: "flow",
-    dim: 3,
-    params: { a: 1.4, b: 1.0 },
-    eq: "ẋ=−ax−by−bz−y², ẏ=−ay−bz−bx−z², ż=−az−bx−by−x²",
-    init: () => ({ x: 0.1, y: 0.0, z: 0.0 }),
-    deriv: (s, p) => ({
-      dx: -p.a*s.x - p.b*s.y - p.b*s.z - s.y*s.y,
-      dy: -p.a*s.y - p.b*s.z - p.b*s.x - s.z*s.z,
-      dz: -p.a*s.z - p.b*s.x - p.b*s.y - s.x*s.x,
-    }),
-    step: (s, dt, p) => rk4Flow((ss, pp)=>SYSTEMS_BY_ID.halvorsen.deriv(ss, pp), s, dt, p),
-    scale: 2.2,
-  },
-
+  // RF: keep equation, adjust defaults to be stable visually
   {
     id: "rf",
     name: "Rabinovich–Fabrikant",
@@ -190,14 +136,14 @@ export const SYSTEMS = [
     dim: 3,
     params: { a: 0.14, g: 0.10 },
     eq: "ẋ=yz−y+yx²+γx, ẏ=3xz+x−x³+γy, ż=−2az−2xyz",
-    init: () => ({ x: 0.1, y: 0.0, z: 0.0 }),
+    init: () => ({ x: 0.1, y: 0.05, z: 0.0 }),
     deriv: (s, p) => ({
       dx: s.y*s.z - s.y + s.y*(s.x**2) + p.g*s.x,
       dy: 3*s.x*s.z + s.x - (s.x**3) + p.g*s.y,
       dz: -2*p.a*s.z - 2*s.x*s.y*s.z
     }),
     step: (s, dt, p) => rk4Flow((ss, pp)=>SYSTEMS_BY_ID.rf.deriv(ss, pp), s, dt, p),
-    scale: 10.0,
+    scale: 6.5,
   },
 
   {
@@ -215,23 +161,6 @@ export const SYSTEMS = [
     }),
     step: (s, dt, p) => rk4Flow((ss, pp)=>SYSTEMS_BY_ID.qichen.deriv(ss, pp), s, dt, p),
     scale: 2.2,
-  },
-
-  {
-    id: "burkeshaw",
-    name: "Burke–Shaw",
-    kind: "flow",
-    dim: 3,
-    params: { e: 0.0, n: 10.0 },
-    eq: "ẋ=−n(x+y), ẏ=y−nxz, ż=nxy+e",
-    init: () => ({ x: 0.1, y: 0.0, z: 0.0 }),
-    deriv: (s, p) => ({
-      dx: -p.n*(s.x + s.y),
-      dy: s.y - p.n*s.x*s.z,
-      dz: p.n*s.x*s.y + p.e
-    }),
-    step: (s, dt, p) => rk4Flow((ss, pp)=>SYSTEMS_BY_ID.burkeshaw.deriv(ss, pp), s, dt, p),
-    scale: 2.0,
   },
 
   {
@@ -268,15 +197,69 @@ export const SYSTEMS = [
     scale: 2.2,
   },
 
+  // replacements (new 3D attractors)
+
+  {
+    id: "nosehoover",
+    name: "Nose–Hoover",
+    kind: "flow",
+    dim: 3,
+    params: { a: 1.5 },
+    eq: "ẋ=y, ẏ=−x+yz, ż=a−y²",
+    init: () => ({ x: 0.1, y: 0.0, z: 0.0 }),
+    deriv: (s, p) => ({
+      dx: s.y,
+      dy: -s.x + s.y*s.z,
+      dz: p.a - s.y*s.y
+    }),
+    step: (s, dt, p) => rk4Flow((ss, pp)=>SYSTEMS_BY_ID.nosehoover.deriv(ss, pp), s, dt, p),
+    scale: 10.0,
+  },
+
+  {
+    id: "rikitake",
+    name: "Rikitake Dynamo",
+    kind: "flow",
+    dim: 3,
+    params: { a: 1.0, mu: 0.5 },
+    eq: "ẋ=−μx+yz, ẏ=−μy−ax+xz, ż=1−xy",
+    init: () => ({ x: 0.1, y: 0.0, z: 0.0 }),
+    deriv: (s, p) => ({
+      dx: -p.mu*s.x + s.y*s.z,
+      dy: -p.mu*s.y - p.a*s.x + s.x*s.z,
+      dz: 1 - s.x*s.y
+    }),
+    step: (s, dt, p) => rk4Flow((ss, pp)=>SYSTEMS_BY_ID.rikitake.deriv(ss, pp), s, dt, p),
+    scale: 3.0,
+  },
+
+  {
+    id: "dadras",
+    name: "Dadras",
+    kind: "flow",
+    dim: 3,
+    params: { c: 1.7, e: 9.0, o: 2.0, p: 3.0, r: 2.0 },
+    eq: "ẋ=y−px+o yz, ẏ=ry−xz+z, ż=cxy−ez",
+    init: () => ({ x: 0.1, y: 0.0, z: 0.0 }),
+    deriv: (s, P) => ({
+      dx: s.y - P.p*s.x + P.o*s.y*s.z,
+      dy: P.r*s.y - s.x*s.z + s.z,
+      dz: P.c*s.x*s.y - P.e*s.z
+    }),
+    step: (s, dt, p) => rk4Flow((ss, pp)=>SYSTEMS_BY_ID.dadras.deriv(ss, pp), s, dt, p),
+    scale: 1.3,
+  },
+
   // ---------------- 2D MAPS ----------------
 
+  // Hénon map equation is correct. [web:557]
   {
     id: "henon",
     name: "Hénon map",
     kind: "map",
     dim: 2,
     params: { a: 1.4, b: 0.3 },
-    eq: "xₙ₊₁ = 1 − a xₙ² + yₙ;  yₙ₊₁ = b xₙ",
+    eq: "xₙ₊₁=1−a xₙ² + yₙ;  yₙ₊₁=b xₙ",
     init: () => ({ x: 0.1, y: 0.1, z: 0 }),
     stepMap: (s, p) => clamp2D({
       x: 1 - p.a*(s.x**2) + s.y,
@@ -288,11 +271,11 @@ export const SYSTEMS = [
 
   {
     id: "logistic",
-    name: "Logistic map",
+    name: "Logistic map (phase plot)",
     kind: "map",
-    dim: 2, // visualized as (x_n, x_{n+1})
+    dim: 2,
     params: { r: 4.0 },
-    eq: "xₙ₊₁ = r xₙ(1−xₙ) (render as (xₙ, xₙ₊₁))",
+    eq: "xₙ₊₁=r xₙ(1−xₙ) (rendered as (xₙ, xₙ₊₁))",
     init: () => ({ x: 0.2, y: 0.0, z: 0 }),
     stepMap: (s, p) => {
       const xnext = p.r * s.x * (1 - s.x);
@@ -301,17 +284,18 @@ export const SYSTEMS = [
     scale: 120.0,
   },
 
+  // Switch to canonical Arnold's cat map matrix: (2x+y, x+y) mod 1 [web:546]
   {
     id: "arnoldcat",
     name: "Arnold cat map",
     kind: "map",
     dim: 2,
-    params: { },
-    eq: "[x';y'] = [[1,1],[1,2]] [x;y] mod 1",
+    params: {},
+    eq: "[x';y'] = [[2,1],[1,1]] [x;y] mod 1",
     init: () => ({ x: 0.12, y: 0.34, z: 0 }),
     stepMap: (s) => {
-      const x = (s.x + s.y) % 1;
-      const y = (s.x + 2*s.y) % 1;
+      const x = (2*s.x + s.y) % 1;
+      const y = (s.x + s.y) % 1;
       return clamp2D({ x, y, z: 0 });
     },
     scale: 220.0,
@@ -320,7 +304,6 @@ export const SYSTEMS = [
 
 export const SYSTEMS_BY_ID = Object.fromEntries(SYSTEMS.map(s => [s.id, s]));
 
-// Ensure flow systems have a .step
 for (const sys of SYSTEMS) {
   if (sys.kind === "flow" && typeof sys.step !== "function") {
     sys.step = (s, dt, p) => rk4Flow(sys.deriv, s, dt, p);
